@@ -12,7 +12,7 @@
 global $deployment_button_instance;
 
 if ( !is_object($deployment_button_instance) || !is_a($deployment_button_instance, 'DeploymentTriggerUtility') ) {
-  $deployment_button_instance = DeploymentTriggerUtility::instantiate_by_host();
+  $deployment_button_instance = DeploymentTriggerUtility::get_singleton();
 }
 
 class DeploymentTriggerUtility {
@@ -22,20 +22,12 @@ class DeploymentTriggerUtility {
 
   var $deployment_trigger_file = NULL;
 
-  static function & instantiate_by_host()
+  static function & get_singleton()
   {/*{{{*/
     // TODO: Implement RBAC here.
     // Instantiate a singleton, depending on the host URL. 
-    $request_url = static::filter_post('url');
     static::$singleton = new DeploymentTriggerUtility; 
     return static::$singleton;
-  }/*}}}*/
-
-  function filter_post($v, $if_unset = NULL)
-  {/*{{{*/
-    return isset($_POST[$v]) && (is_array($_POST[$v]) || 0 < strlen(trim($_POST[$v]))) 
-      ? (is_array($_POST[$v]) ? $_POST[$v] : trim($_POST[$v]))
-      : $if_unset; 
   }/*}}}*/
 
   static function deployment_button_activation_hook()
@@ -87,6 +79,24 @@ class DeploymentTriggerUtility {
 <?php
   }/*}}}*/
 
+  static function deployment_button_field_branchinfo_cb( $args )
+  {/*{{{*/
+    $options = get_option( 'deployment_button_options' );
+    $deployment_button_field_branchinfo = $options['deployment_button_field_branchinfo'];
+?>
+  <input id="<?php echo esc_attr( $args['label_for'] ); ?>"
+    data-custom="<?php echo esc_attr( $args['deployment_button_custom_data'] ); ?>"
+    name="deployment_button_options[<?php echo esc_attr( $args['label_for'] ); ?>]"
+    type="text"
+    value="<?php echo esc_attr( $deployment_button_field_branchinfo ); ?>"
+  >
+  <p class="description">
+  <?php esc_html_e( 'File in '. get_home_path() . 'containing branch info', 'deployment_button' ); ?>
+  </p>
+<?php
+  }/*}}}*/
+
+
   static function deployment_button_settings_init()
   {/*{{{*/
     global $deployment_button_instance;
@@ -100,7 +110,7 @@ class DeploymentTriggerUtility {
 
     add_settings_field(
       'deployment_button_field_filename',
-      __('Filename', 'deployment_button'),
+      __('Trigger filename', 'deployment_button'),
       array($deployment_button_instance,'deployment_button_field_filename_cb'),
       'deployment_button',
       'deployment_button_section_settings',
@@ -111,21 +121,36 @@ class DeploymentTriggerUtility {
       ]
     );
 
+    add_settings_field(
+      'deployment_button_field_branchinfo',
+      __('Branch name file', 'deployment_button'),
+      array($deployment_button_instance,'deployment_button_field_branchinfo_cb'),
+      'deployment_button',
+      'deployment_button_section_settings',
+      [
+        'label_for' => 'deployment_button_field_branchinfo',
+        'class' => 'deployment_button_row',
+        'deployment_button_custom_data' => 'custom',
+      ]
+    );
+
+
   }/*}}}*/
 
   static function custom_toolbar_link($wp_admin_bar)
   {/*{{{*/
     if ( !is_admin() ) return;
     $siteurl = get_option('siteurl');
+    $options = get_option( 'deployment_button_options' );
+    $deployment_button_field_branchinfo = $options['deployment_button_field_branchinfo'];
+    $branchfile = get_home_path() . $deployment_button_field_branchinfo;
     $gitbranch = "-";
-    $branchfile = get_home_path() . '/branch.txt';
     if ( file_exists( $branchfile ) )
       $gitbranch = file_get_contents( $branchfile );
     $args = [
       array(
         'id' => 'deployment-button-trigger',
         'title' => 'Deploy ' . $gitbranch,
-        // 'href' => plugins_url('deploy-button/execute.php' ),
         'meta' => array(
           'class' => 'deployment-button-trigger',
           'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path(),
@@ -196,7 +221,7 @@ class DeploymentTriggerUtility {
   }/*}}}*/
 
   static function deploy_trigger()
-  {
+  {/*{{{*/
 
     $options = get_option( 'deployment_button_options' );
     $current_user = wp_get_current_user();
@@ -218,7 +243,7 @@ class DeploymentTriggerUtility {
     header('Content-Type: application/json');
     echo($response);
     exit(0);
-  }
+  }/*}}}*/
 }
 
 register_activation_hook( __FILE__, array($deployment_button_instance, 'deployment_button_activation_hook'));
