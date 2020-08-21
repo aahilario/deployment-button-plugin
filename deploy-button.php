@@ -9,66 +9,71 @@
  * License: GPLv2
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
+global $deployment_button_instance;
 
-if ( !function_exists('deployment_button_activation_hook') )
-{
-  function deployment_button_activation_hook()
+if ( !is_object($deployment_button_instance) || !is_a($deployment_button_instance, 'DeploymentTriggerUtility') ) {
+  $deployment_button_instance = DeploymentTriggerUtility::instantiate_by_host();
+}
+
+class DeploymentTriggerUtility {
+
+  public static $singleton = NULL;
+  public static $enable_debug = FALSE;
+
+  var $deployment_trigger_file = NULL;
+
+  static function & instantiate_by_host()
+  {/*{{{*/
+    // TODO: Implement RBAC here.
+    // Instantiate a singleton, depending on the host URL. 
+    $request_url = static::filter_post('url');
+    static::$singleton = new DeploymentTriggerUtility; 
+    return static::$singleton;
+  }/*}}}*/
+
+  function filter_post($v, $if_unset = NULL)
+  {/*{{{*/
+    return isset($_POST[$v]) && (is_array($_POST[$v]) || 0 < strlen(trim($_POST[$v]))) 
+      ? (is_array($_POST[$v]) ? $_POST[$v] : trim($_POST[$v]))
+      : $if_unset; 
+  }/*}}}*/
+
+  static function deployment_button_activation_hook()
   {/*{{{*/
     add_option( 'deployment_button_active', 'yes' );
   }/*}}}*/
-}
 
-register_activation_hook( __FILE__, 'deployment_button_activation_hook' );
-
-if ( !function_exists('deployment_button_deactivation_hook') )
-{
-  function deployment_button_deactivation_hook()
+  static function deployment_button_deactivation_hook()
   {/*{{{*/
   }/*}}}*/
-}
 
-register_activation_hook( __FILE__, 'deployment_button_deactivation_hook' );
-
-if ( !function_exists('deployment_button_init') )
-{
-  function deployment_button_init()
+  static function deployment_button_init()
   {/*{{{*/
   }/*}}}*/
-}
 
-if ( !function_exists('load_plugin') )
-{
-  function load_plugin()
+  static function load_plugin()
   {/*{{{*/
+    closelog();
+    openlog( basename(__FILE__), LOG_PID | LOG_NDELAY, LOG_LOCAL1 );
     if ( is_admin() && get_option( 'deployment_button_active' ) == 'yes' )
     {
       delete_option( 'deployment_button_active' );
       add_action( 'init', 'deployment_button_init' );
     }
   }/*}}}*/
-}
 
-add_action( 'admin_init', 'load_plugin' );
-
-/**
- * custom option and settings:
- * callback functions
- */
-function deployment_button_section_settings_cb( $args )
-{/*{{{*/
-  // developers section cb
-  // section callbacks can accept an $args parameter, which is an array.
-  // $args have the following keys defined: title, id, callback.
-  // the values are defined at the add_settings_section() function.
+  static function deployment_button_section_settings_cb( $args )
+  {/*{{{*/
 ?>
-<p id="<?php echo esc_attr( $args['id'] ); ?>"><?php esc_html_e( 'Follow the white rabbit.', 'deployment_button' ); ?></p>
+<script type="text/javascript">
+</script>
 <?php
-}/*}}}*/
+  }/*}}}*/
 
-function deployment_button_field_filename_cb( $args )
-{/*{{{*/
-  $options = get_option( 'deployment_button_options' );
-  $deployment_button_field_filename = $options['deployment_button_field_filename'];
+  static function deployment_button_field_filename_cb( $args )
+  {/*{{{*/
+    $options = get_option( 'deployment_button_options' );
+    $deployment_button_field_filename = $options['deployment_button_field_filename'];
 ?>
   <input id="<?php echo esc_attr( $args['label_for'] ); ?>"
     data-custom="<?php echo esc_attr( $args['deployment_button_custom_data'] ); ?>"
@@ -80,38 +85,35 @@ function deployment_button_field_filename_cb( $args )
   <?php esc_html_e( 'Name of file to place in '. get_home_path(), 'deployment_button' ); ?>
   </p>
 <?php
-}/*}}}*/
+  }/*}}}*/
 
-function deployment_button_settings_init()
-{/*{{{*/
-  register_setting( 'deployment_button', 'deployment_button_options' );
-  add_settings_section(
-    'deployment_button_section_settings',
-    __( 'Action taken on selecting "Deploy"', 'deployment_button' ),
-    'deployment_button_section_settings_cb',
-    'deployment_button'
-  );
+  static function deployment_button_settings_init()
+  {/*{{{*/
+    global $deployment_button_instance;
+    register_setting( 'deployment_button', 'deployment_button_options' );
+    add_settings_section(
+      'deployment_button_section_settings',
+      __( 'Action taken on selecting "Deploy"', 'deployment_button' ),
+      array($deployment_button_instance,'deployment_button_section_settings_cb'),
+      'deployment_button'
+    );
 
-  add_settings_field(
-    'deployment_button_field_filename',
-    __('Filename', 'deployment_button'),
-    'deployment_button_field_filename_cb',
-    'deployment_button',
-    'deployment_button_section_settings',
-    [
-      'label_for' => 'deployment_button_field_filename',
-      'class' => 'deployment_button_row',
-      'deployment_button_custom_data' => 'custom',
-    ]
-  );
+    add_settings_field(
+      'deployment_button_field_filename',
+      __('Filename', 'deployment_button'),
+      array($deployment_button_instance,'deployment_button_field_filename_cb'),
+      'deployment_button',
+      'deployment_button_section_settings',
+      [
+        'label_for' => 'deployment_button_field_filename',
+        'class' => 'deployment_button_row',
+        'deployment_button_custom_data' => 'custom',
+      ]
+    );
 
-}/*}}}*/
+  }/*}}}*/
 
-add_action( 'admin_init', 'deployment_button_settings_init' );
-
-if ( !function_exists('custom_toolbar_link') )
-{
-  function custom_toolbar_link($wp_admin_bar)
+  static function custom_toolbar_link($wp_admin_bar)
   {/*{{{*/
     if ( !is_admin() ) return;
     $siteurl = get_option('siteurl');
@@ -123,22 +125,18 @@ if ( !function_exists('custom_toolbar_link') )
       array(
         'id' => 'deployment-button-trigger',
         'title' => 'Deploy ' . $gitbranch,
-        // 'href' => plugins_url() . '/execute.php',
+        // 'href' => plugins_url('deploy-button/execute.php' ),
         'meta' => array(
           'class' => 'deployment-button-trigger',
-          'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path()
+          'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path(),
+          'id' => 'deployment-button-trigger'
         )
       )
     ];
     foreach ( $args as $arg ) $wp_admin_bar->add_node($arg);
   }/*}}}*/
-}
 
-add_action('admin_bar_menu', 'custom_toolbar_link', 999);
-
-if ( !function_exists('deployment_button_admin_settings_page') )
-{
-  function deployment_button_admin_settings_page()
+  static function deployment_button_admin_settings_page()
   {/*{{{*/
     if ( !current_user_can('manage_options') ) {
       return;
@@ -168,30 +166,48 @@ if ( !function_exists('deployment_button_admin_settings_page') )
     </div>
 <?php
   }/*}}}*/
-}
 
-if ( !function_exists('deployment_button_add_admin_submenu') )
-{
-  function deployment_button_add_admin_submenu()
+  static function deployment_button_add_admin_submenu()
   {/*{{{*/
+    global $deployment_button_instance;
     add_submenu_page(
       'options-general.php',
       'Deployment Settings',
       'Deployment',
       'manage_options',
       'deploy-trigger',
-      'deployment_button_admin_settings_page'
+      array($deployment_button_instance,'deployment_button_admin_settings_page')
     );
   }/*}}}*/
-}
 
-add_action('admin_menu', 'deployment_button_add_admin_submenu');
+  static function enqueue_scripts( $hook )
+  {/*{{{*/
+    wp_enqueue_script( 
+      'deploy-button-ajax', 
+      plugins_url( '/js/deploy-button.js', __FILE__ ), 
+      array('jquery')
+    );
+    $trigger_nonce = wp_create_nonce( 'trigger' );
+    syslog( LOG_INFO, "Enqueueing $hook with ajax_url = " . admin_url('admin-ajax.php') );
+    wp_localize_script( 'deploy-button-ajax', 'deploy_button_ajax_obj', array(
+      'ajax_url' => admin_url( 'admin-ajax.php' ),
+      'nonce'    => $trigger_nonce,
+    ) );
+  }/*}}}*/
 
-if ( !function_exists('deployment_button_foo') )
-{
-  function deployment_button_foo()
+  static function deploy_trigger()
   {
+    syslog( LOG_INFO, "Received trigger" );
   }
 }
 
+register_activation_hook( __FILE__, array($deployment_button_instance, 'deployment_button_activation_hook'));
+register_activation_hook( __FILE__, array($deployment_button_instance, 'deployment_button_deactivation_hook'));
 
+add_action('admin_init'           , array($deployment_button_instance, 'load_plugin'));
+add_action('admin_init'           , array($deployment_button_instance, 'deployment_button_settings_init'));
+add_action('admin_bar_menu'       , array($deployment_button_instance, 'custom_toolbar_link'), 999);
+add_action('admin_menu'           , array($deployment_button_instance, 'deployment_button_add_admin_submenu'));
+add_action('admin_enqueue_scripts', array($deployment_button_instance, 'enqueue_scripts') );
+
+add_action('wp_ajax_trigger', array($deployment_button_instance, 'deploy_trigger') );
