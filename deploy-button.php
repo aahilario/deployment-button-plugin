@@ -3,7 +3,7 @@
  * Plugin Name: Deployment Button
  * Plugin URI: https://github.com/aahilario/deployment-button-plugin/
  * Description: A plugin that creates a configurable, one-line file in the base directory of a WordPress installation.
- * Version: 0.1
+ * Version: 0.2
  * Author: Antonio VA Hilario
  * Author URI: https://github.com/aahilario/
  * License: GPLv2
@@ -197,7 +197,27 @@ class DeploymentTriggerUtility {
 
   static function deploy_trigger()
   {
+
+    $options = get_option( 'deployment_button_options' );
+    $current_user = wp_get_current_user();
+    $deployment_button_field_filename = $options['deployment_button_field_filename'];
+
     syslog( LOG_INFO, "Received trigger" );
+    $trigger_file = get_home_path() . $deployment_button_field_filename;
+    $dropped = "Yes";
+    if ( !file_exists($trigger_file) )
+      file_put_contents( $trigger_file, json_encode(array_merge($_SERVER,['requester' => $current_user->data->user_login])));
+    else
+      $dropped = "No";
+    $reply = [
+      'dropped' => $dropped,
+      'requester' => $current_user->data->user_login
+    ];
+    $response = json_encode($reply);
+    header('Content-Length: ' . strlen($response));
+    header('Content-Type: application/json');
+    echo($response);
+    exit(0);
   }
 }
 
