@@ -33,6 +33,8 @@ class DeploymentTriggerUtility {
   static function deployment_button_activation_hook()
   {/*{{{*/
     add_option( 'deployment_button_active', 'yes' );
+    add_option( 'deployment_button_field_filename', 'deploy.txt'); 
+    add_option( 'deployment_button_field_branchinfo', 'branch.txt'); 
   }/*}}}*/
 
   static function deployment_button_deactivation_hook()
