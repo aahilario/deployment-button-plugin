@@ -231,12 +231,11 @@ class DeploymentTriggerUtility {
 
     syslog( LOG_INFO, "Received trigger" );
     $trigger_file = get_home_path() . $deployment_button_field_filename;
-    if ( file_exists($trigger_file) )                                                                                |              chcon -t httpd_sys_rw_content_t "${T}"
-      unlink($trigger_file);                                                                                         |            fi
-    if ( !file_put_contents( $trigger_file, json_encode(array_merge($_SERVER,['requester' => $current_user->data->use|            if [ -f .gitignore ]; then
-      $dropped = "No";                                                                                               |              grep -q ${TRIGGERFILE} .gitignore 2> /dev/null || echo ${TRIGGERFILE} >> .gitignore
-      //else                                                                                                           |            fi
-      //  $dropped = "No";                                                                                             |          ;;
+    $dropped = "Yes";
+    if ( file_exists($trigger_file) )
+      unlink($trigger_file);
+    if ( !file_put_contents( $trigger_file, json_encode(array_merge($_SERVER,['requester' => $current_user->data->user_login]))) )
+      $dropped = "No";
     $reply = [
       'dropped' => $dropped,
       'requester' => $current_user->data->user_login
