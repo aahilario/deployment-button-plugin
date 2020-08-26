@@ -268,7 +268,10 @@ class DeploymentTriggerUtility {
       $_SERVER,
       [
         'requester' => $current_user->data->user_login,
-        'targeturl' => $deployment_button_field_targeturl
+        'targeturl' => [ 
+          'full_url' => $deployment_button_field_targeturl,
+          'parts' => parse_url($deployment_button_field_targeturl)
+        ],
       ]
     ))) )
       $dropped = "No";
