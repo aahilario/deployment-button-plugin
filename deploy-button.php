@@ -178,14 +178,17 @@ class DeploymentTriggerUtility {
     $siteurl = get_option('siteurl');
     $options = get_option( 'deployment_button_options' );
     $deployment_button_field_branchinfo = $options['deployment_button_field_branchinfo'];
+    $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
     $branchfile = get_home_path() . $deployment_button_field_branchinfo;
     $gitbranch = "-";
-    if ( file_exists( $branchfile ) )
+    if ( 0 < strlen( $deployment_button_field_targeturl ) )
+      $gitbranch = $deployment_button_field_targeturl;
+    else if ( file_exists( $branchfile ) )
       $gitbranch = file_get_contents( $branchfile );
     $args = [
       array(
         'id' => 'deployment-button-trigger',
-        'title' => 'Deploy ' . $gitbranch,
+        'title' => "Deploy <b>{$gitbranch}</b>",
         'meta' => array(
           'class' => 'deployment-button-trigger',
           'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path(),
