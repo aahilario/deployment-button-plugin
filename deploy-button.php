@@ -257,13 +257,20 @@ class DeploymentTriggerUtility {
     $options = get_option( 'deployment_button_options' );
     $current_user = wp_get_current_user();
     $deployment_button_field_filename = $options['deployment_button_field_filename'];
+    $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
 
     $trigger_file = get_home_path() . $deployment_button_field_filename;
     syslog( LOG_INFO, "Dropping trigger file into {$trigger_file}" );
     $dropped = "Yes";
     if ( file_exists($trigger_file) )
       unlink($trigger_file);
-    if ( !file_put_contents( $trigger_file, json_encode(array_merge($_SERVER,['requester' => $current_user->data->user_login]))) )
+    if ( !file_put_contents( $trigger_file, json_encode(array_merge(
+      $_SERVER,
+      [
+        'requester' => $current_user->data->user_login,
+        'targeturl' => $deployment_button_field_targeturl
+      ]
+    ))) )
       $dropped = "No";
     $reply = [
       'dropped' => $dropped,
