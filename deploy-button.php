@@ -35,6 +35,7 @@ class DeploymentTriggerUtility {
     add_option( 'deployment_button_active', 'yes' );
     add_option( 'deployment_button_field_filename', 'deploy.txt'); 
     add_option( 'deployment_button_field_branchinfo', 'branch.txt'); 
+    add_option( 'deployment_button_field_targeturl', ''); 
   }/*}}}*/
 
   static function deployment_button_deactivation_hook()
@@ -61,6 +62,26 @@ class DeploymentTriggerUtility {
 ?>
 <script type="text/javascript">
 </script>
+<?php
+  }/*}}}*/
+
+  static function deployment_button_field_targeturl_cb( $args )
+  {/*{{{*/
+    $options = get_option( 'deployment_button_options' );
+    $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
+    $default_url = 'https://' . basename(get_home_path());
+    if ( 0 == strlen(trim($deployment_button_field_targeturl)) )
+      $deployment_button_field_targeturl = $default_url; 
+?>
+  <input id="<?php echo esc_attr( $args['label_for'] ); ?>"
+    data-custom="<?php echo esc_attr( $args['deployment_button_custom_data'] ); ?>"
+    name="deployment_button_options[<?php echo esc_attr( $args['label_for'] ); ?>]"
+    type="text"
+    value="<?php echo esc_attr( $deployment_button_field_targeturl ); ?>"
+  >
+  <p class="description">
+  <?php esc_html_e( "Deployment destination URL e.g. {$default_url}" , 'deployment_button' ); ?>
+  </p>
 <?php
   }/*}}}*/
 
@@ -98,7 +119,6 @@ class DeploymentTriggerUtility {
 <?php
   }/*}}}*/
 
-
   static function deployment_button_settings_init()
   {/*{{{*/
     global $deployment_button_instance;
@@ -131,6 +151,19 @@ class DeploymentTriggerUtility {
       'deployment_button_section_settings',
       [
         'label_for' => 'deployment_button_field_branchinfo',
+        'class' => 'deployment_button_row',
+        'deployment_button_custom_data' => 'custom',
+      ]
+    );
+
+    add_settings_field(
+      'deployment_button_field_targeturl',
+      __('Full Destination URL', 'deployment_button'),
+      array($deployment_button_instance,'deployment_button_field_targeturl_cb'),
+      'deployment_button',
+      'deployment_button_section_settings',
+      [
+        'label_for' => 'deployment_button_field_targeturl',
         'class' => 'deployment_button_row',
         'deployment_button_custom_data' => 'custom',
       ]
@@ -170,12 +203,8 @@ class DeploymentTriggerUtility {
     }
 
     if ( isset( $_GET['settings-updated'] ) ) {
-      // add settings saved message with the class of "updated"
       add_settings_error( 'deployment_button_messages', 'deployment_button_message', __( 'Settings Saved', 'deployment_button' ), 'updated' );
     }
-
-    // settings_errors( 'deployment_button_messages' );
-
 ?>
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -229,8 +258,8 @@ class DeploymentTriggerUtility {
     $current_user = wp_get_current_user();
     $deployment_button_field_filename = $options['deployment_button_field_filename'];
 
-    syslog( LOG_INFO, "Received trigger" );
     $trigger_file = get_home_path() . $deployment_button_field_filename;
+    syslog( LOG_INFO, "Dropping trigger file into {$trigger_file}" );
     $dropped = "Yes";
     if ( file_exists($trigger_file) )
       unlink($trigger_file);
