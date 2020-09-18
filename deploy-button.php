@@ -22,6 +22,38 @@ class DeploymentTriggerUtility {
 
   var $deployment_trigger_file = NULL;
 
+  static function recursive_dump( $a, $prefix = "-->", $depth = 0, $loglevel = LOG_INFO )
+{/*{{{*/
+  /*
+   * Dump contents of array to syslog
+   */
+
+  global $skipkeys;
+  $iterable = is_array($a) || is_object($a);
+  if ( !$iterable ) {
+    return 0;
+  }
+  foreach ( $a as $k => $v ) {
+    $pad = str_pad(" ", 3 * $depth, " ", STR_PAD_LEFT);
+    $iterable = is_array($v) || is_object($v);
+    if ( $iterable ) {
+      if ( is_array($skipkeys) && array_key_exists($k, $skipkeys) ) {
+        syslog( $loglevel, $prefix . "{$pad}{$k} => [skipped]" );
+      }
+      else {
+        syslog( $loglevel, $prefix . "{$pad}{$k} => ..." );
+        self::recursive_dump( $v, $prefix, $depth + 1, $loglevel );
+      }
+    }
+    else {
+      if ( is_bool( $v ) ) {
+        $v = $v ? 'true' : 'false';
+      }
+      syslog( $loglevel, $prefix . "{$pad}{$k} => {$v}" );
+    }
+  }
+}/*}}}*/
+
   static function & get_singleton()
   {/*{{{*/
     // TODO: Implement RBAC here.
@@ -33,9 +65,10 @@ class DeploymentTriggerUtility {
   static function deployment_button_activation_hook()
   {/*{{{*/
     add_option( 'deployment_button_active', 'yes' );
-    add_option( 'deployment_button_field_filename', 'deploy.txt'); 
-    add_option( 'deployment_button_field_branchinfo', 'branch.txt'); 
-    add_option( 'deployment_button_field_targeturl', ''); 
+    // One of three states: Empty, "Pending", "Error"
+    add_option( 'deployment_button_state', ''); 
+    // A string placed in the database by deployment tools 
+    add_option( 'deployment_button_stepinfo', ''); 
   }/*}}}*/
 
   static function deployment_button_deactivation_hook()
@@ -239,6 +272,25 @@ class DeploymentTriggerUtility {
     );
   }/*}}}*/
 
+  static function get_sessioninfo()
+  {/*{{{*/
+    # Get session identifier for the currently logged-in user
+    $sessioninfo = NULL;
+    foreach ( $_COOKIE as $k => $v ) {
+      if ( 1 == preg_match( '/^wordpress_logged_in_(.*)$/', $k ) ) {
+        $sessioninfo = explode('|', $v);
+        if ( is_array($sessioninfo) && array_key_exists(2, $sessioninfo) ) {
+          $sessioninfo = $sessioninfo[2];
+        }
+        else {
+          $sessioninfo = NULL;
+        }
+        break;
+      }
+    }
+    return $sessioninfo;
+  }/*}}}*/
+
   static function enqueue_scripts( $hook )
   {/*{{{*/
     wp_enqueue_script( 
@@ -247,47 +299,131 @@ class DeploymentTriggerUtility {
       array('jquery')
     );
     $trigger_nonce = wp_create_nonce( 'trigger' );
-    syslog( LOG_INFO, "Enqueueing $hook with ajax_url = " . admin_url('admin-ajax.php') );
+    $queryid = self::get_sessioninfo();
+    $admin_url = admin_url('admin-ajax.php');
+    syslog( LOG_INFO, "Enqueueing $hook with ajax_url = {$admin_url}, queryid {$queryid}, nonce {$trigger_nonce}" );
     wp_localize_script( 'deploy-button-ajax', 'deploy_button_ajax_obj', array(
-      'ajax_url' => admin_url( 'admin-ajax.php' ),
+      'ajax_url' => $admin_url,
       'nonce'    => $trigger_nonce,
+      'queryid'  => $queryid,
     ) );
   }/*}}}*/
 
+  static function deploy_query()
+  {
+    $reply = [];
+
+    global $skipkeys;
+    $skipkeys = NULL;
+    $options = get_option( 'deployment_button_options' );
+    $deploystate = get_option( 'deployment_button_state' );
+    $stepinfo = get_option( 'deployment_button_stepinfo' );
+    $current_user = wp_get_current_user();
+    $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
+
+    $trigger_file = get_home_path() . $deployment_button_field_filename;
+
+    $sessioninfo = self::get_sessioninfo();
+
+    $reply = [
+      'target' => $deployment_button_field_targeturl,
+      'trackby' => $sessioninfo,
+      'requester' => $current_user->data->user_login,
+      'state' => $deploystate,
+      'info' => $stepinfo,
+      'interval' => 10000,
+    ];
+
+    switch ( $deploystate ) {
+      case "Pending":
+        $reply['interval'] = 3000;
+        break;
+      case "Error":
+        $reply['interval'] = 5000;
+        break;
+    }
+
+    return $reply;
+  }
   static function deploy_trigger()
   {/*{{{*/
 
+    global $skipkeys;
+    $skipkeys = NULL;
     $options = get_option( 'deployment_button_options' );
+    $deploystate = get_option( 'deployment_button_state' );
     $current_user = wp_get_current_user();
     $deployment_button_field_filename = $options['deployment_button_field_filename'];
     $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
 
     $trigger_file = get_home_path() . $deployment_button_field_filename;
-    syslog( LOG_INFO, "Dropping trigger file into {$trigger_file}" );
-    $dropped = "Yes";
-    if ( file_exists($trigger_file) )
-      unlink($trigger_file);
-    if ( !file_put_contents( $trigger_file, json_encode(array_merge(
-      $_SERVER,
-      [
+
+    $sessioninfo = self::get_sessioninfo();
+
+    $reply = [
+      'trackby' => $sessioninfo,
+      'requester' => $current_user->data->user_login,
+    ];
+
+    if ( 0 == strlen($deploystate) ) {
+
+      syslog( LOG_INFO, "Dropping trigger file into {$trigger_file}" );
+      $dropped = "Yes";
+
+      if ( file_exists($trigger_file) )
+        unlink($trigger_file);
+      $trigger_data = [
         'requester' => $current_user->data->user_login,
         'targeturl' => [ 
           'full_url' => $deployment_button_field_targeturl,
           'parts' => parse_url($deployment_button_field_targeturl)
         ],
-      ]
-    ))) )
+      ];
+      if ( !file_put_contents( $trigger_file, json_encode(array_merge(
+        $_SERVER,
+        $trigger_data 
+      ))) ) {
+        $dropped = "No";
+      }
+      else {
+        update_option('deployment_button_state', 'Pending');
+        update_option('deployment_button_stepinfo', 'Pending');
+      }
+    }
+    else {
       $dropped = "No";
-    $reply = [
-      'dropped' => $dropped,
-      'requester' => $current_user->data->user_login
-    ];
+    }
+
+    $reply['dropped'] = $dropped;
+    $reply['stepinfo'] = get_option('deployment_button_stepinfo');
+
+    return $reply;
+
+  }/*}}}*/
+
+  static function deploy_handler()
+  {/*{{{*/
+    $reply = [];
+    switch( substr($_REQUEST['action'],0,10) ) {
+      case 'query':
+        $reply = self::deploy_query();
+        break;
+      case 'trigger':
+        $reply = self::deploy_trigger();
+        break;
+      default:
+        break;
+    }
+
+    static::recursive_dump($reply,'-#');    
     $response = json_encode($reply);
     header('Content-Length: ' . strlen($response));
     header('Content-Type: application/json');
     echo($response);
     exit(0);
+
   }/*}}}*/
+
 }
 
 register_activation_hook( __FILE__, array($deployment_button_instance, 'deployment_button_activation_hook'));
@@ -299,4 +435,8 @@ add_action('admin_bar_menu'       , array($deployment_button_instance, 'custom_t
 add_action('admin_menu'           , array($deployment_button_instance, 'deployment_button_add_admin_submenu'));
 add_action('admin_enqueue_scripts', array($deployment_button_instance, 'enqueue_scripts') );
 
-add_action('wp_ajax_trigger', array($deployment_button_instance, 'deploy_trigger') );
+add_action('wp_ajax_trigger', array($deployment_button_instance, 'deploy_handler') );
+add_action('wp_ajax_query', array($deployment_button_instance, 'deploy_handler') );
+
+$deploy_css = plugins_url( basename( plugin_dir_path(__FILE__) ) ) . '/css/deploy-button.css';
+wp_enqueue_style('deploy_button_stylesheet', $deploy_css);

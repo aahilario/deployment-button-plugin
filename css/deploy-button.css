@@ -1,0 +1,17 @@
+.deploy-pending {
+  background-color: rgb(198,140,50) !important;
+}
+
+.deploy-pending > div > *, .deploy-pending > div {
+  color: black !important;
+  font-weight: bold;
+}
+
+.deploy-error {
+  background-color: #7f0000 !important;
+}
+
+.deploy-error > div > *, .deploy-error > div {
+  color: black !important;
+  font-weight: bold;
+}
