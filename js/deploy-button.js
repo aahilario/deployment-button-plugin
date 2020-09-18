@@ -46,7 +46,7 @@ jQuery(document).ready(function($) {
             $(this)
               .attr('title','Trigger deployment to '+data.target)
               .empty()
-              .text('Deploy <b>'+data.target+'</b>'); 
+              .text('Deploy '+data.target); 
           });
         if ( data.state == "Pending" ) {
           $('li#wp-admin-bar-deployment-button-trigger')
