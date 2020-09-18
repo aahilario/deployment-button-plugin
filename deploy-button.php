@@ -221,7 +221,7 @@ class DeploymentTriggerUtility {
     $args = [
       array(
         'id' => 'deployment-button-trigger',
-        'title' => "Deploy <b>{$gitbranch}</b>",
+        'title' => "Deploy {$gitbranch}",
         'meta' => array(
           'class' => 'deployment-button-trigger',
           'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path(),
