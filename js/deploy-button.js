@@ -42,12 +42,12 @@ jQuery(document).ready(function($) {
           .removeClass('deploy-error')
           .removeClass('deploy-pending')
           .find('div.ab-item')
-          .each(function(){ $(this).attr('title','Trigger deployment to '+data.target); });
+          .each(function(){ $(this).attr('title','Trigger deployment to <b>'+data.target+'</b>'); });
         if ( data.state == "Pending" ) {
           $('li#wp-admin-bar-deployment-button-trigger')
             .addClass('deploy-pending')
             .find('div.ab-item')
-            .each(function(){ $(this).attr('title',data.info); });
+            .each(function(){ $(this).empty().text(data.info); });
         }
         if ( data.state == "Error" ) {
           $('li#wp-admin-bar-deployment-button-trigger')
