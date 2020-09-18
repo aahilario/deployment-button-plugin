@@ -298,6 +298,8 @@ class DeploymentTriggerUtility {
       plugins_url( '/js/deploy-button.js', __FILE__ ), 
       array('jquery')
     );
+    $deploy_css = plugins_url( basename( plugin_dir_path(__FILE__) ) ) . '/css/deploy-button.css';
+    wp_enqueue_style('deploy_button_stylesheet', $deploy_css);
     $trigger_nonce = wp_create_nonce( 'trigger' );
     $queryid = self::get_sessioninfo();
     $admin_url = admin_url('admin-ajax.php');
@@ -446,5 +448,4 @@ add_action('admin_enqueue_scripts', array($deployment_button_instance, 'enqueue_
 add_action('wp_ajax_trigger', array($deployment_button_instance, 'deploy_handler') );
 add_action('wp_ajax_query', array($deployment_button_instance, 'deploy_handler') );
 
-$deploy_css = plugins_url( basename( plugin_dir_path(__FILE__) ) ) . '/css/deploy-button.css';
-wp_enqueue_style('deploy_button_stylesheet', $deploy_css);
+
