@@ -42,7 +42,7 @@ jQuery(document).ready(function($) {
           .removeClass('deploy-error')
           .removeClass('deploy-pending')
           .find('div.ab-item')
-          .each(function(){ $(this).attr('title','Trigger deployment to <b>'+data.target+'</b>'); });
+          .each(function(){ $(this).attr('title','Trigger deployment to <b>'+data.target+'</b>').text('Deploy '+data.target); });
         if ( data.state == "Pending" ) {
           $('li#wp-admin-bar-deployment-button-trigger')
             .addClass('deploy-pending')
