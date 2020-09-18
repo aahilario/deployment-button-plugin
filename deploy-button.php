@@ -334,12 +334,20 @@ class DeploymentTriggerUtility {
       'interval' => 10000,
     ];
 
+    if ( $stepinfo == "Done" )
+      $deploystate = "Done";
+
     switch ( $deploystate ) {
       case "Pending":
-        $reply['interval'] = 3000;
+        $reply['interval'] = 2000;
         break;
       case "Error":
         $reply['interval'] = 5000;
+        break;
+      case "Done":
+        $reply['interval'] = 10000;
+        update_option( 'deployment_button_state', '' );
+        update_option( 'deployment_button_stepinfo', '' );
         break;
     }
 
