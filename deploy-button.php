@@ -122,6 +122,8 @@ class DeploymentTriggerUtility {
   {/*{{{*/
     $options = get_option( 'deployment_button_options' );
     $deployment_button_field_filename = $options['deployment_button_field_filename'];
+    if ( 0 == strlen(trim($deployment_button_field_filename)) )
+      $deployment_button_field_filename = "deploy.txt";
 ?>
   <input id="<?php echo esc_attr( $args['label_for'] ); ?>"
     data-custom="<?php echo esc_attr( $args['deployment_button_custom_data'] ); ?>"
@@ -139,6 +141,9 @@ class DeploymentTriggerUtility {
   {/*{{{*/
     $options = get_option( 'deployment_button_options' );
     $deployment_button_field_branchinfo = $options['deployment_button_field_branchinfo'];
+    if ( 0 == strlen(trim($deployment_button_field_branchinfo)) )
+      $deployment_button_field_branchinfo = "branch.txt";
+
 ?>
   <input id="<?php echo esc_attr( $args['label_for'] ); ?>"
     data-custom="<?php echo esc_attr( $args['deployment_button_custom_data'] ); ?>"
@@ -322,8 +327,6 @@ class DeploymentTriggerUtility {
     $stepinfo = get_option( 'deployment_button_stepinfo' );
     $current_user = wp_get_current_user();
     $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
-
-    $trigger_file = get_home_path() . $deployment_button_field_filename;
 
     $sessioninfo = self::get_sessioninfo();
 
