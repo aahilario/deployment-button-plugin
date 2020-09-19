@@ -428,7 +428,7 @@ class DeploymentTriggerUtility {
         break;
     }
 
-    static::recursive_dump($reply,'-#');    
+    // static::recursive_dump($reply,'-#');    
     $response = json_encode($reply);
     header('Content-Length: ' . strlen($response));
     header('Content-Type: application/json');
