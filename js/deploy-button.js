@@ -36,6 +36,19 @@ jQuery(document).ready(function($) {
         console.log('Querying trigger state');
       }),
       complete   : (function(jqueryXHR, textStatus){}),
+      error      : (function(jqueryXHR, textStatus, errorThrown){
+        $('li#wp-admin-bar-deployment-button-trigger')
+          .removeClass('deploy-error')
+          .removeClass('deploy-pending')
+          .addClass('deploy-error')
+          .find('div.ab-item')
+          .each(function(){ 
+            $(this).attr('title',textStatus); 
+          });
+        setTimeout(function(){
+          send_status_query();
+        },2000);
+      }),
       success    : (function(data, httpstatus, jqueryXHR){
         console.log('Got query reply');
         $('li#wp-admin-bar-deployment-button-trigger')
