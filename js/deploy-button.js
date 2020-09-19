@@ -62,8 +62,11 @@ jQuery(document).ready(function($) {
         }
         if ( data.info == "Done" ) {
           data.interval = 2000;
+          $('li#wp-admin-bar-deployment-button-trigger').data('ptarget', data.target);
           setTimeout(function(){
-            var w = window.open(data.target,'_blank');
+            var target = $('li#wp-admin-bar-deployment-button-trigger').data('ptarget');
+            console.log('Opening '+target);
+            var w = window.open(target,'_blank');
             if ( w ) w.focus();
           },1000);
         }
