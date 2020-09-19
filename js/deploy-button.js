@@ -63,11 +63,10 @@ jQuery(document).ready(function($) {
         if ( data.info == "Done" ) {
           data.interval = 2000;
           $('li#wp-admin-bar-deployment-button-trigger').data('ptarget', data.target);
-          console.log('About to open '+target);
+          console.log('About to open '+data.target);
           setTimeout(function(){
-            var target = $('li#wp-admin-bar-deployment-button-trigger').data('ptarget');
-            console.log('Opening '+target);
-            var w = window.open(target,'_blank');
+            console.log('Opening '+$('li#wp-admin-bar-deployment-button-trigger').data('ptarget'));
+            var w = window.open($('li#wp-admin-bar-deployment-button-trigger').data('ptarget'),'_blank');
             if ( w ) w.focus();
           },1000);
         }
