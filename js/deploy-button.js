@@ -60,6 +60,13 @@ jQuery(document).ready(function($) {
             .find('div.ab-item')
             .each(function(){ $(this).attr('title',data.info); });
         }
+        if ( data.info == "Done" ) {
+          data.interval = 2000;
+          setTimeout(function(){
+            var w = window.open(data.target,'_blank');
+            if ( w ) w.focus();
+          },1000);
+        }
         setTimeout(function(){
           send_status_query();
         },data.interval);
