@@ -63,6 +63,7 @@ jQuery(document).ready(function($) {
         if ( data.info == "Done" ) {
           data.interval = 2000;
           $('li#wp-admin-bar-deployment-button-trigger').data('ptarget', data.target);
+          console.log('About to open '+target);
           setTimeout(function(){
             var target = $('li#wp-admin-bar-deployment-button-trigger').data('ptarget');
             console.log('Opening '+target);
