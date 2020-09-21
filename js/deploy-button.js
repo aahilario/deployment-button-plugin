@@ -16,7 +16,9 @@ jQuery(document).ready(function($) {
       }),
       complete   : (function(jqueryXHR, textStatus){}),
       success    : (function(data, httpstatus, jqueryXHR){
-        console.log('Got reply');
+        setTimeout(function(){
+          send_status_query();
+        },1000);
       }) 
     });
   });
