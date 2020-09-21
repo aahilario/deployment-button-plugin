@@ -221,7 +221,7 @@ class DeploymentTriggerUtility {
     $gitbranch = "-";
     if ( 0 < strlen( $deployment_button_field_targeturl ) )
       $gitbranch = $deployment_button_field_targeturl;
-    else if ( file_exists( $branchfile ) )
+    else if ( file_exists( $branchfile ) && is_file( $branchfile ) )
       $gitbranch = file_get_contents( $branchfile );
     $args = [
       array(
