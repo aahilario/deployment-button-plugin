@@ -316,6 +316,15 @@ class DeploymentTriggerUtility {
     ) );
   }/*}}}*/
 
+  static function unparse_url($parsed_url) {
+    $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+    $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+    $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+    $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+    $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+    return "{$scheme}{$host}{$port}{$path}{$query}";
+  }
+
   static function deploy_query()
   {
     $reply = [];
@@ -351,6 +360,10 @@ class DeploymentTriggerUtility {
         break;
       case "Done":
         $reply['interval'] = 10000;
+        $parsed_target = parse_url($deployment_button_field_targeturl);
+        $parsed_target['query'] = "ver=" . bin2hex(random_bytes(32));
+        $reply['target'] = self::unparse_url($parsed_target);
+        $parsed_target = parse_url($reply['target']);
         update_option( 'deployment_button_state', '' );
         update_option( 'deployment_button_stepinfo', '' );
         break;
