@@ -102,7 +102,7 @@ class DeploymentTriggerUtility {
   {/*{{{*/
     $options = get_option( 'deployment_button_options' );
     $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
-    $default_url = 'https://' . basename(get_home_path());
+    $default_url = 'https://' . $_SERVER['SERVER_NAME'];
     if ( 0 == strlen(trim($deployment_button_field_targeturl)) )
       $deployment_button_field_targeturl = $default_url; 
 ?>
@@ -132,7 +132,7 @@ class DeploymentTriggerUtility {
     value="<?php echo esc_attr( $deployment_button_field_filename ); ?>"
   >
   <p class="description">
-  <?php esc_html_e( 'Name of file to place in '. get_home_path(), 'deployment_button' ); ?>
+  <?php esc_html_e( 'Name of file to place in '. ABSPATH, 'deployment_button' ); ?>
   </p>
 <?php
   }/*}}}*/
@@ -152,7 +152,7 @@ class DeploymentTriggerUtility {
     value="<?php echo esc_attr( $deployment_button_field_branchinfo ); ?>"
   >
   <p class="description">
-  <?php esc_html_e( 'File in '. get_home_path() . 'containing branch info', 'deployment_button' ); ?>
+  <?php esc_html_e( 'File in '. ABSPATH . ' containing branch info', 'deployment_button' ); ?>
   </p>
 <?php
   }/*}}}*/
@@ -217,7 +217,7 @@ class DeploymentTriggerUtility {
     $options = get_option( 'deployment_button_options' );
     $deployment_button_field_branchinfo = $options['deployment_button_field_branchinfo'];
     $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
-    $branchfile = get_home_path() . $deployment_button_field_branchinfo;
+    $branchfile = ABSPATH . '/' . $deployment_button_field_branchinfo;
     $gitbranch = "-";
     if ( 0 < strlen( $deployment_button_field_targeturl ) )
       $gitbranch = $deployment_button_field_targeturl;
@@ -229,7 +229,7 @@ class DeploymentTriggerUtility {
         'title' => "Deploy {$gitbranch}",
         'meta' => array(
           'class' => 'deployment-button-trigger',
-          'title' => "Trigger a deployment from branch '{$gitbranch}' on " . get_home_path(),
+          'title' => "Trigger a deployment from branch '{$gitbranch}' on {$_SERVER['SERVER_NAME']}",
           'id' => 'deployment-button-trigger'
         )
       )
@@ -382,7 +382,7 @@ class DeploymentTriggerUtility {
     $deployment_button_field_filename = $options['deployment_button_field_filename'];
     $deployment_button_field_targeturl = $options['deployment_button_field_targeturl'];
 
-    $trigger_file = get_home_path() . $deployment_button_field_filename;
+    $trigger_file = ABSPATH . '/' . $deployment_button_field_filename;
 
     $sessioninfo = self::get_sessioninfo();
 
